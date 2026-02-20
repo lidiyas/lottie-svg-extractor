@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lottie JSON Preview + Copy SVG Frame</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: #0b0f14;
+      color: #e6edf3;
+    }
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 16px;
+    }
+    @media (max-width: 900px) {
+      .wrap { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: #111826;
+      border: 1px solid #223047;
+      border-radius: 14px;
+      box-shadow: 0 6px 20px rgba(0,0,0,.25);
+      padding: 14px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 16px;
+      font-weight: 650;
+      letter-spacing: .2px;
+    }
+    label { font-size: 12px; opacity: .9; display: inline-block; margin-bottom: 6px; }
+    textarea {
+      width: 100%;
+      min-height: 340px;
+      resize: vertical;
+      box-sizing: border-box;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid #2a3a55;
+      background: #0b1220;
+      color: #e6edf3;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      line-height: 1.4;
+      outline: none;
+    }
+    textarea:focus { border-color: #3b82f6; }
+    .row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .row3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .row4 {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .btns {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    button {
+      border: 1px solid #2a3a55;
+      background: #0b1220;
+      color: #e6edf3;
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform .05s ease, border-color .15s ease;
+      user-select: none;
+    }
+    button:hover { border-color: #3b82f6; }
+    button:active { transform: translateY(1px); }
+    button.primary {
+      background: #2563eb;
+      border-color: #2563eb;
+    }
+    button.primary:hover { border-color: #3b82f6; }
+    input[type="number"], input[type="text"], select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 9px 10px;
+      border-radius: 12px;
+      border: 1px solid #2a3a55;
+      background: #0b1220;
+      color: #e6edf3;
+      outline: none;
+    }
+    input:focus, select:focus { border-color: #3b82f6; }
+
+    .hint { font-size: 12px; opacity: .8; margin-top: 8px; }
+    .small { font-size: 11px; opacity: .75; margin-top: 6px; }
+    .error, .toast {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      display: none;
+    }
+    .error {
+      border: 1px solid #7f1d1d;
+      background: rgba(127,29,29,.15);
+      color: #fecaca;
+    }
+    .toast {
+      border: 1px solid #14532d;
+      background: rgba(20,83,45,.15);
+      color: #bbf7d0;
+    }
+
+    .preview { display: grid; gap: 12px; }
+    .stageWrap { display: grid; gap: 8px; }
+    .stage {
+      width: 100%;
+      height: 430px;
+      border-radius: 14px;
+      border: 1px dashed #2a3a55;
+      background: #0b1220;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+    .stageInner {
+      width: 320px;
+      height: 320px;
+    }
+    .kv {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 8px 10px;
+      font-size: 12px;
+      opacity: .9;
+    }
+    .kv div:nth-child(odd) { opacity: .7; }
+    code.inline {
+      background: rgba(148,163,184,.12);
+      border: 1px solid rgba(148,163,184,.25);
+      padding: 2px 6px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <!-- LEFT -->
+    <div class="card">
+      <h1>lottie json → preview</h1>
+
+      <label for="json">вставь сюда lottie json (целиком)</label>
+      <textarea id="json" placeholder='{"v":"5.7.4","fr":30,"ip":0,"op":60,"w":512,"h":512,"layers":[...]}'></textarea>
+
+      <div class="row4">
+        <div>
+          <label>renderer</label>
+          <select id="renderer">
+            <option value="svg" selected>svg (нужен для copy svg)</option>
+            <option value="canvas">canvas</option>
+            <option value="html">html</option>
+          </select>
+        </div>
+        <div>
+          <label>loop</label>
+          <select id="loop">
+            <option value="true" selected>true</option>
+            <option value="false">false</option>
+          </select>
+        </div>
+        <div>
+          <label>autoplay</label>
+          <select id="autoplay">
+            <option value="true" selected>true</option>
+            <option value="false">false</option>
+          </select>
+        </div>
+        <div>
+          <label>direction</label>
+          <select id="direction">
+            <option value="1" selected>forward</option>
+            <option value="-1">backward</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>size (px)</label>
+          <input id="size" type="number" min="50" max="2000" value="320" />
+        </div>
+        <div>
+          <label>speed</label>
+          <input id="speed" type="number" min="0.1" max="10" step="0.1" value="1" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>stage background</label>
+          <input id="bg" type="text" value="#0b1220" />
+          <div class="small">можно: #hex, rgb(), и т.д.</div>
+        </div>
+        <div>
+          <label>transparent stage</label>
+          <select id="transparent">
+            <option value="false" selected>false</option>
+            <option value="true">true</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="btns">
+        <button class="primary" id="renderBtn">render</button>
+        <button id="clearBtn">clear</button>
+        <button id="playBtn">play</button>
+        <button id="pauseBtn">pause</button>
+        <button id="stopBtn">stop</button>
+        <button id="toggleDirBtn">toggle dir</button>
+      </div>
+
+      <hr style="border:none;border-top:1px solid #223047; margin:14px 0;" />
+
+      <h1>copy svg frame</h1>
+      <div class="row">
+        <div>
+          <label>frame number (0 = first)</label>
+          <input id="frameNum" type="number" min="0" value="0" />
+          <div class="small">важно: корректнее всего работает с <code class="inline">renderer=svg</code></div>
+        </div>
+        <div style="display:grid; align-content:end;">
+          <button id="copySvgBtn">copy svg</button>
+          <div class="small">копирует <code class="inline">&lt;svg&gt;...&lt;/svg&gt;</code> в буфер</div>
+        </div>
+      </div>
+
+      <div class="hint">
+        если видишь ошибку типа “Unexpected token …” — ты вставила не чистый JSON (часто копируют вместе с <code class="inline">export default</code> или с хвостами).
+      </div>
+
+      <div id="err" class="error"></div>
+      <div id="toast" class="toast"></div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="preview">
+      <div class="card stageWrap">
+        <h1>preview</h1>
+        <div id="stage" class="stage">
+          <div id="lottie" class="stageInner"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h1>info</h1>
+        <div class="kv">
+          <div>status</div><div id="status">idle</div>
+          <div>frames</div><div id="frames">—</div>
+          <div>size</div><div id="sizeInfo">—</div>
+          <div>framerate</div><div id="frInfo">—</div>
+          <div>totalFrames</div><div id="totalFrames">—</div>
+          <div>currentFrame</div><div id="curFrame">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- lottie-web -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js"></script>
+
+  <script>
+    let anim = null;
+
+    const els = {
+      json: document.getElementById('json'),
+      renderer: document.getElementById('renderer'),
+      loop: document.getElementById('loop'),
+      autoplay: document.getElementById('autoplay'),
+      direction: document.getElementById('direction'),
+      size: document.getElementById('size'),
+      speed: document.getElementById('speed'),
+      bg: document.getElementById('bg'),
+      transparent: document.getElementById('transparent'),
+
+      frameNum: document.getElementById('frameNum'),
+      copySvgBtn: document.getElementById('copySvgBtn'),
+
+      stage: document.getElementById('stage'),
+      container: document.getElementById('lottie'),
+
+      err: document.getElementById('err'),
+      toast: document.getElementById('toast'),
+
+      status: document.getElementById('status'),
+      frames: document.getElementById('frames'),
+      sizeInfo: document.getElementById('sizeInfo'),
+      frInfo: document.getElementById('frInfo'),
+      totalFrames: document.getElementById('totalFrames'),
+      curFrame: document.getElementById('curFrame'),
+
+      renderBtn: document.getElementById('renderBtn'),
+      clearBtn: document.getElementById('clearBtn'),
+      playBtn: document.getElementById('playBtn'),
+      pauseBtn: document.getElementById('pauseBtn'),
+      stopBtn: document.getElementById('stopBtn'),
+      toggleDirBtn: document.getElementById('toggleDirBtn'),
+    };
+
+    function setError(msg) {
+      els.err.style.display = msg ? 'block' : 'none';
+      els.err.textContent = msg || '';
+    }
+
+    let toastTimer = null;
+    function showToast(msg) {
+      clearTimeout(toastTimer);
+      els.toast.style.display = 'block';
+      els.toast.textContent = msg;
+      toastTimer = setTimeout(() => {
+        els.toast.style.display = 'none';
+        els.toast.textContent = '';
+      }, 1800);
+    }
+
+    function setStatus(msg) {
+      els.status.textContent = msg;
+    }
+
+    function destroyAnim() {
+      if (anim) {
+        try { anim.destroy(); } catch {}
+        anim = null;
+      }
+      els.container.innerHTML = '';
+      els.totalFrames.textContent = '—';
+      els.curFrame.textContent = '—';
+    }
+
+    function parseJsonLoose(text) {
+      // 1) чистый JSON
+      try { return JSON.parse(text); } catch {}
+
+      // 2) частый случай: вставили JS с const/export default — вырезаем объект {...}
+      const first = text.indexOf('{');
+      const last = text.lastIndexOf('}');
+      if (first !== -1 && last !== -1 && last > first) {
+        const slice = text.slice(first, last + 1);
+        return JSON.parse(slice);
+      }
+      throw new Error('не смог распарсить: вставь валидный JSON (объект).');
+    }
+
+    function applyStageStyle() {
+      const isTransparent = els.transparent.value === 'true';
+      els.stage.style.background = isTransparent ? 'transparent' : (els.bg.value || '#0b1220');
+    }
+
+    function applySize() {
+      const px = Math.max(50, Math.min(2000, Number(els.size.value) || 320));
+      els.container.style.width = px + 'px';
+      els.container.style.height = px + 'px';
+      els.sizeInfo.textContent = px + '×' + px + ' px';
+    }
+
+    function applyDirection() {
+      if (!anim) return;
+      const dir = Number(els.direction.value) === -1 ? -1 : 1;
+      anim.setDirection(dir);
+    }
+
+    function applySpeed() {
+      if (!anim) return;
+      const sp = Number(els.speed.value) || 1;
+      anim.setSpeed(sp);
+    }
+
+    function refreshFrameInfo() {
+      if (!anim) return;
+      els.totalFrames.textContent = String(Math.round(anim.totalFrames || 0));
+      els.curFrame.textContent = String(Math.round(anim.currentFrame || 0));
+    }
+
+    function render() {
+      setError('');
+      applyStageStyle();
+      applySize();
+
+      const raw = els.json.value.trim();
+      if (!raw) {
+        setError('вставь JSON в поле слева.');
+        setStatus('idle');
+        return;
+      }
+
+      let data;
+      try {
+        data = parseJsonLoose(raw);
+      } catch (e) {
+        destroyAnim();
+        setError(String(e && e.message ? e.message : e));
+        setStatus('error');
+        return;
+      }
+
+      destroyAnim();
+
+      anim = lottie.loadAnimation({
+        container: els.container,
+        renderer: els.renderer.value,
+        loop: els.loop.value === 'true',
+        autoplay: els.autoplay.value === 'true',
+        animationData: data
+      });
+
+      // применяем настройки
+      applySpeed();
+      applyDirection();
+
+      // info из json
+      const fr = (data && typeof data.fr === 'number') ? data.fr : '—';
+      const ip = (data && typeof data.ip === 'number') ? data.ip : 0;
+      const op = (data && typeof data.op === 'number') ? data.op : '—';
+      els.frames.textContent = `${ip} → ${op}`;
+      els.frInfo.textContent = String(fr);
+
+      // когда DOM готов — обновим totalFrames и т.п.
+      anim.addEventListener('DOMLoaded', () => {
+        refreshFrameInfo();
+
+        // если backward + autoplay=true — логичнее стартовать с конца
+        const isBackward = Number(els.direction.value) === -1;
+        const isAutoplay = els.autoplay.value === 'true';
+
+        if (isAutoplay && isBackward) {
+          anim.goToAndStop(anim.totalFrames, true);
+          anim.play();
+        }
+        setStatus('rendered');
+      });
+
+      anim.addEventListener('enterFrame', refreshFrameInfo);
+      anim.addEventListener('complete', refreshFrameInfo);
+
+      setStatus('loading...');
+    }
+
+    async function copyTextToClipboard(text) {
+      // modern clipboard
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      // fallback
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      ta.style.top = '-9999px';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+
+    async function copySvgFrame() {
+      setError('');
+      if (!anim) {
+        setError('сначала нажми render, чтобы появилась анимация.');
+        return;
+      }
+      if (els.renderer.value !== 'svg') {
+        setError('copy svg работает только при renderer = svg. переключи renderer на svg и нажми render.');
+        return;
+      }
+
+      // clamp frame
+      const total = Math.max(0, Math.floor(anim.totalFrames || 0));
+      let f = Math.floor(Number(els.frameNum.value) || 0);
+      if (total > 0) f = Math.max(0, Math.min(total, f));
+
+      // стопаем на нужном кадре и ждём, пока svg обновится
+      anim.pause();
+      anim.goToAndStop(f, true);
+
+      await new Promise(requestAnimationFrame);
+
+      const svg = els.container.querySelector('svg');
+      if (!svg) {
+        setError('не нашёл <svg> в контейнере. убедись, что renderer=svg и анимация нормально отрендерилась.');
+        return;
+      }
+
+      const svgCode = svg.outerHTML;
+
+      try {
+        await copyTextToClipboard(svgCode);
+        showToast(`svg скопирован (frame ${f})`);
+        setStatus(`copied svg frame ${f}`);
+      } catch (e) {
+        setError('не смог скопировать в буфер обмена. проверь разрешения браузера на clipboard.');
+      }
+    }
+
+    // кнопки
+    els.renderBtn.addEventListener('click', render);
+
+    els.clearBtn.addEventListener('click', () => {
+      els.json.value = '';
+      destroyAnim();
+      setError('');
+      setStatus('cleared');
+      els.frames.textContent = '—';
+      els.frInfo.textContent = '—';
+      els.totalFrames.textContent = '—';
+      els.curFrame.textContent = '—';
+    });
+
+    els.playBtn.addEventListener('click', () => {
+      if (anim) {
+        applyDirection();
+        anim.play();
+        setStatus(Number(els.direction.value) === -1 ? 'play (backward)' : 'play (forward)');
+      }
+    });
+
+    els.pauseBtn.addEventListener('click', () => { if (anim) anim.pause(); setStatus('pause'); });
+    els.stopBtn.addEventListener('click', () => { if (anim) anim.stop(); setStatus('stop'); });
+
+    els.toggleDirBtn.addEventListener('click', () => {
+      const cur = Number(els.direction.value) === -1 ? -1 : 1;
+      const next = cur * -1;
+      els.direction.value = String(next);
+      if (anim) {
+        applyDirection();
+        anim.play();
+        setStatus(next === -1 ? 'play (backward)' : 'play (forward)');
+      }
+    });
+
+    // изменение настроек
+    els.direction.addEventListener('change', () => {
+      if (!anim) return;
+      applyDirection();
+      anim.play();
+      setStatus(Number(els.direction.value) === -1 ? 'play (backward)' : 'play (forward)');
+    });
+
+    els.speed.addEventListener('change', () => { if (anim) applySpeed(); });
+    els.size.addEventListener('change', applySize);
+    els.bg.addEventListener('change', applyStageStyle);
+    els.transparent.addEventListener('change', applyStageStyle);
+
+    // copy svg
+    els.copySvgBtn.addEventListener('click', copySvgFrame);
+
+    // Ctrl/Cmd+Enter renders
+    els.json.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') render();
+    });
+
+    // init
+    applyStageStyle();
+    applySize();
+  </script>
+</body>
+</html>
